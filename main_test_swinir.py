@@ -6,6 +6,7 @@ from collections import OrderedDict
 import os
 import torch
 import requests
+from tqdm import tqdm
 
 from models.network_swinir import SwinIR as net
 from utils import util_calculate_psnr_ssim as util
@@ -35,10 +36,10 @@ def main():
     if os.path.exists(args.model_path):
         print(f'loading model from {args.model_path}')
     else:
+        print(f'Downloading model {args.model_path}')
         os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
         url = 'https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/{}'.format(os.path.basename(args.model_path))
         r = requests.get(url, allow_redirects=True)
-        print(f'downloading model {args.model_path}')
         open(args.model_path, 'wb').write(r.content)
 
     model = define_model(args)
@@ -79,6 +80,7 @@ def main():
         if output.ndim == 3:
             output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # CHW-RGB to HCW-BGR
         output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
+        print(f'Saving {save_dir}/{imgname}_SwinIR.png')
         cv2.imwrite(f'{save_dir}/{imgname}_SwinIR.png', output)
 
         # evaluate psnr/ssim/psnr_b
@@ -293,6 +295,7 @@ def test(img_lq, model, args, window_size):
         E = torch.zeros(b, c, h*sf, w*sf).type_as(img_lq)
         W = torch.zeros_like(E)
 
+        pbar = tqdm(total=len(h_idx_list)*len(w_idx_list))
         for h_idx in h_idx_list:
             for w_idx in w_idx_list:
                 in_patch = img_lq[..., h_idx:h_idx+tile, w_idx:w_idx+tile]
@@ -301,6 +304,9 @@ def test(img_lq, model, args, window_size):
 
                 E[..., h_idx*sf:(h_idx+tile)*sf, w_idx*sf:(w_idx+tile)*sf].add_(out_patch)
                 W[..., h_idx*sf:(h_idx+tile)*sf, w_idx*sf:(w_idx+tile)*sf].add_(out_patch_mask)
+
+                pbar.update(1)
+        pbar.close()
         output = E.div_(W)
 
     return output
