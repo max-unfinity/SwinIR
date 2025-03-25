@@ -16,7 +16,6 @@
 
 # predict: "predict.py:Predictor"
 
-<<<<<<< HEAD
 timm==0.4.12
 torch>=1.8.0
 torchvision
@@ -35,17 +34,3 @@ python-json-logger
 # basicsr>=1.4.2
 # facexlib>=0.2.5
 # gfpgan>=1.3.599
-=======
-
-timm==0.4.12
-# torch>=1.8.0
-# torchvision
-# opencv-python
-# Pillow
-# tqdm
-
-## For Real-ESRGAN:
-# basicsr>=1.4.2
-# facexlib>=0.2.5
-# gfpgan>=1.3.5
->>>>>>> 2e0b977b8bfdd2cee2a35db36ecfcaa38ac8223a

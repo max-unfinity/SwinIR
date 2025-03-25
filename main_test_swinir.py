@@ -14,10 +14,6 @@ from utils import util_calculate_psnr_ssim as util
 
 def main():
     parser = argparse.ArgumentParser()
-<<<<<<< HEAD
-    print('start')
-=======
->>>>>>> 2e0b977b8bfdd2cee2a35db36ecfcaa38ac8223a
     parser.add_argument('--task', type=str, default='color_dn', help='classical_sr, lightweight_sr, real_sr, '
                                                                      'gray_dn, color_dn, jpeg_car, color_jpeg_car')
     parser.add_argument('--scale', type=int, default=1, help='scale factor: 1, 2, 3, 4, 8') # 1 for dn and jpeg car
