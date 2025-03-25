@@ -1,0 +1,7 @@
+__pycache__
+/input
+/experiments
+/results
+/testsets
+/swinir_venv
+*.pth
