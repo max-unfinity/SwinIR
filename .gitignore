@@ -1,7 +1,12 @@
 __pycache__
 /input
+<<<<<<< HEAD
 /experiments
 /results
 /testsets
 /swinir_venv
 *.pth
+=======
+/results
+/experiments
+>>>>>>> 2e0b977b8bfdd2cee2a35db36ecfcaa38ac8223a
