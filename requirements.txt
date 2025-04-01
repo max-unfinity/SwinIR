@@ -18,9 +18,9 @@
 
 timm==0.4.12
 torch>=1.8.0
-torchvision
+# torchvision
 opencv-python
-Pillow
+# Pillow
 tqdm
 fastapi
 uvicorn
@@ -28,6 +28,7 @@ numpy
 requests
 pydantic
 python-json-logger
+python-multipart
 
 
 # For Real-ESRGAN:

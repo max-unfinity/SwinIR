@@ -1,19 +1,11 @@
-import cv2
-import glob
-import numpy as np
 import os
 import torch
 import requests
-import base64
-import time
 
-from models.network_swinir import SwinIR as net
-from utils import util_calculate_psnr_ssim as util
-from main_test_swinir import get_image_pair, test
-from app_utils import define_model, setup
+from app_utils import define_model, inference
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, UploadFile, HTTPException
+from fastapi.responses import Response
 
 import uvicorn
 import uuid
@@ -26,16 +18,11 @@ app = FastAPI()
 class ArgsModel(BaseModel):
     task: str = 'classical_sr'
     scale: int = 2
-    noise: int = 15
-    jpeg: int = 40
     training_patch_size: int = 48
     large_model: bool = True
     model_path : str = 'model_zoo/swinir/001_classicalSR_DIV2K_s48w8_SwinIR-M_x2.pth'
-    folder_lq: str = 'testsets/Set5/LR_bicubic/X2'
-    folder_gt: str = 'testsets/Set5/HR'
     tile: int = None
     tile_overlap: int = 32
-    save_jpg: bool = True
     
 args = ArgsModel()
 
@@ -58,73 +45,34 @@ model = define_model(args)
 model.eval()
 model = model.to(device)
 
-def inference(args):
-    
-    start = time.time()
-    image_results = []
-    code = 200
-    try:
-        folder, save_dir, border, window_size = setup(args)
-        for idx, path in enumerate(sorted(glob.glob(os.path.join(folder, '*')))):
-            image_result = {}
-            # read image
-            imgname, img_lq, img_gt = get_image_pair(args, path)  # image to HWC-BGR, float32
-            img_lq = np.transpose(img_lq if img_lq.shape[2] == 1 else img_lq[:, :, [2, 1, 0]], (2, 0, 1))  # HCW-BGR to CHW-RGB
-            img_lq = torch.from_numpy(img_lq).float().unsqueeze(0).to(device)  # CHW-RGB to NCHW-RGB
 
-            # inference
-            with torch.no_grad():
-                # pad input image to be a multiple of window_size
-                _, _, h_old, w_old = img_lq.size()
-                h_pad = (h_old // window_size + 1) * window_size - h_old
-                w_pad = (w_old // window_size + 1) * window_size - w_old
-                img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
-                img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
-                output = test(img_lq, model, args, window_size)
-                output = output[..., :h_old * args.scale, :w_old * args.scale]
+def get_response(client_addr, request_id, args, files):
 
-            # save image
-            output = output.data.squeeze().float().cpu().clamp_(0, 1).numpy()
-            if output.ndim == 3:
-                output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # CHW-RGB to HCW-BGR
-            output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
-        
-            _, buffer = cv2.imencode(".jpg", output)
-            img_base64 = base64.b64encode(buffer).decode("utf-8")
-
-            image_result['index'] = idx
-            image_result['base64'] = img_base64
-            
-            image_results.append(image_result)
-        delay = time.time() - start
-        return code, image_results, True, delay, ''
-    except Exception as e:
-        code = 500
-        delay = time.time() - start
-        return code, None, False, delay, str(e)
-        
-
-
-def get_response(client_addr, request_id, input):
-
-    status_code, results, success, time, error = inference(input)
+    status_code, results, success, time, error = inference(files, args, model, device)
     log_type = 'INFO' if success else 'ERROR'
     logs = log(log_type, status_code, client_addr, request_id, success, time, error)
-    return {
-        'results': results,
-        'logs': logs
-    }
-
-
-@app.exception_handler(UnicornException)
-async def unicorn_exception_handler(request: Request, exc: UnicornException):
-    return JSONResponse(
-        status_code=exc.response['logs']['status_code'],
-        content=exc.response,
-    )
+    return results, success, logs
     
 
-@app.post('/run', tags=['Run model'])
-async def run_model(args: ArgsModel, request: Request):
-    response = get_response(request.client.host, str(uuid.uuid4()), args)
-    raise UnicornException(response)
+@app.post('/upscale', tags=['Upscaling'])
+async def run_model(args: ArgsModel, files: list[UploadFile], request: Request):
+    #request.client.host
+    results, success, logs = get_response('foo', str(uuid.uuid4()), args, files)
+    
+    if not success:
+        raise UnicornException({'logs': logs})
+
+    boundary = "my_boundary"
+    multipart_body = b""
+
+    for idx, img_bytes in enumerate(results):
+        headers = (
+            f"--{boundary}\r\n"
+            f"Content-Type: image/png\r\n"
+            f"Content-Disposition: inline; filename=image_{idx}.png\r\n\r\n"
+        )
+        multipart_body += headers.encode() + img_bytes + b"\r\n"
+
+    multipart_body += f"--{boundary}--\r\n".encode()
+
+    return Response(content=multipart_body, media_type=f"multipart/mixed; boundary={boundary}")

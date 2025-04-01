@@ -1,1 +1,8 @@
 {"asctime": "2025-03-24 22:57:11,663", "levelname": "INFO", "status_code": 200, "client_addr": "cl_host", "request_id": "23ae29f1-1a5d-4260-9d94-947b0edb3377", "success": true, "time": 53.95380258560181, "error": ""}
+{"asctime": "2025-03-28 01:16:39,601", "levelname": "INFO", "status_code": 200, "client_addr": "test", "request_id": "test", "success": true, "time": 1130.9324996471405, "error": ""}
+{"asctime": "2025-04-01 23:27:04,795", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0, "error": "'int' object has no attribute 'file'"}
+{"asctime": "2025-04-01 23:27:34,292", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0, "error": "'bytes' object has no attribute 'file'"}
+{"asctime": "2025-04-01 23:27:43,137", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0009860992431640625, "error": "'bytes' object has no attribute 'file'"}
+{"asctime": "2025-04-01 23:28:59,788", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0, "error": "'bytes' object has no attribute 'file'"}
+{"asctime": "2025-04-01 23:29:08,826", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0, "error": "'int' object has no attribute 'file'"}
+{"asctime": "2025-04-01 23:29:15,478", "levelname": "ERROR", "status_code": 500, "client_addr": "t", "request_id": "t", "success": false, "time": 0.0, "error": "'bytes' object has no attribute 'file'"}

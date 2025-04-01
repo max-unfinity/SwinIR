@@ -1,5 +1,9 @@
 from models.network_swinir import SwinIR as net
 import torch
+import time
+import cv2
+import numpy as np
+from main_test_swinir import test
 
 def define_model(args):
     # 001 classical image sr
@@ -67,36 +71,46 @@ def define_model(args):
 
     return model
 
-
-def setup(args):
-    # 001 classical image sr/ 002 lightweight image sr
-    if args.task in ['classical_sr', 'lightweight_sr']:
-        save_dir = f'results/swinir_{args.task}_x{args.scale}'
-        folder = args.folder_gt
-        border = args.scale
+def inference(files, args, model, device):
+    
+    start = time.time()
+    image_results = []
+    code = 200
+    try:
         window_size = 8
+        for file in files:
+            # read image
+            file_bytes = file.file.read()
+            nparr = np.frombuffer(file_bytes, np.uint8)
+            img_lq = cv2.imdecode(nparr, cv2.IMREAD_COLOR).astype(np.float32) / 255
+            img_lq = np.transpose(img_lq if img_lq.shape[2] == 1 else img_lq[:, :, [2, 1, 0]], (2, 0, 1))  # HCW-BGR to CHW-RGB
+            img_lq = torch.from_numpy(img_lq).float().unsqueeze(0).to(device)  # CHW-RGB to NCHW-RGB
 
-    # 003 real-world image sr
-    elif args.task in ['real_sr']:
-        save_dir = f'results/swinir_{args.task}_x{args.scale}'
-        if args.large_model:
-            save_dir += '_large'
-        folder = args.folder_lq
-        border = 0
-        window_size = 8
+            # inference
+            with torch.no_grad():
+                # pad input image to be a multiple of window_size
+                _, _, h_old, w_old = img_lq.size()
+                h_pad = (h_old // window_size + 1) * window_size - h_old
+                w_pad = (w_old // window_size + 1) * window_size - w_old
+                img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
+                img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
+                output = test(img_lq, model, args, window_size)
+                output = output[..., :h_old * args.scale, :w_old * args.scale]
 
-    # 004 grayscale image denoising/ 005 color image denoising
-    elif args.task in ['gray_dn', 'color_dn']:
-        save_dir = f'results/swinir_{args.task}_noise{args.noise}'
-        folder = args.folder_gt
-        border = 0
-        window_size = 8
-
-    # 006 JPEG compression artifact reduction
-    elif args.task in ['jpeg_car', 'color_jpeg_car']:
-        save_dir = f'results/swinir_{args.task}_jpeg{args.jpeg}'
-        folder = args.folder_gt
-        border = 0
-        window_size = 7
-
-    return folder, save_dir, border, window_size
+            # save image
+            output = output.data.squeeze().float().cpu().clamp_(0, 1).numpy()
+            if output.ndim == 3:
+                output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # CHW-RGB to HCW-BGR
+            output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
+        
+            _, buffer = cv2.imencode(".jpg", output)
+            img_bytes = buffer.tobytes()
+            
+            image_results.append(img_bytes)
+        delay = time.time() - start
+        return code, image_results, True, delay, ''
+    except Exception as e:
+        code = 500
+        delay = time.time() - start
+        return code, None, False, delay, str(e)
+        
