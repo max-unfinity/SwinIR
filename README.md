@@ -13,9 +13,27 @@ run container:
 docker run -d -p 8000:8000 fastapi-swinir 
 ```
 
+
+## Input data
+
+### Args:
+     
+     task: str
+     scale: int
+     large_model: bool
+     model_path : str
+     tile: int
+     tile_overlap: int
+### Files:
+     list[UploadFile] - bytes format
+
+## Output data
+
+     batch of bytes
+     
 ## Inference
 
-```
+```python
 import requests
 
 url = "http://localhost:8000/upscale"
@@ -32,18 +50,4 @@ for idx, part in enumerate(parts):
             f.write(img_data)
 
 ```
-
-## Input data
-
-
-## Output data
-
-
-<!-- | Training Set | quality factor | PSNR (RGB) | PSNR-B (RGB) | SSIM (RGB) |
-|:-------------|:--------------:|:----------:|:------------:|:----------:|
-| LIVE1        |       10       |   28.06    |    27.76     |   0.8089   |
-| LIVE1        |       20       |   30.45    |    29.97     |   0.8741   |
-| LIVE1        |       30       |   31.82    |    31.24     |   0.9018   |
-| LIVE1        |       40       |   32.75    |    32.12     |   0.9174   |
-</details> -->
 

@@ -4,7 +4,7 @@ __pycache__
 /results
 /testsets
 /swinir_venv
-/.vscode 
+/.vscode
 /figs
 *.pth
 test.jpg
