@@ -1,4 +1,13 @@
 __pycache__
 /input
-/results
 /experiments
+/results
+/testsets
+/swinir_venv
+/.vscode
+/figs
+*.pth
+test.jpg
+output.jpg
+test.ipynb
+main_test_swinir.py 
